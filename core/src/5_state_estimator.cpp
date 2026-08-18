@@ -1,8 +1,11 @@
 #include "5_state_estimator.hpp"
 
 #include <cmath>
+#include <numbers>
 
 namespace {
+
+constexpr double kPi = std::numbers::pi;
 
 // Ballpark defaults so the filter can run before the caller supplies
 // characterized covariances, roughly matching consumer-grade automotive
@@ -11,7 +14,7 @@ namespace {
 
 // Initial state uncertainty.
 constexpr double kDefaultPositionVar = 10.0;   // [m^2]
-constexpr double kDefaultYawVar = (10.0 * M_PI / 180.0) * (10.0 * M_PI / 180.0); // [rad^2], 10 deg std
+constexpr double kDefaultYawVar = (10.0 * kPi / 180.0) * (10.0 * kPi / 180.0); // [rad^2], 10 deg std
 constexpr double kDefaultVelocityVar = 1.0;    // [(m/s)^2]
 
 // Process noise, added once per predict() call (not scaled by dt).
@@ -21,7 +24,7 @@ constexpr double kDefaultVelocityProcessVar = 1e-3;
 
 // Measurement noise: consumer-grade GPS position/heading/speed.
 constexpr double kDefaultGpsPositionVar = 2.25; // [m^2], 1.5 m std
-constexpr double kDefaultGpsYawVar = (2.0 * M_PI / 180.0) * (2.0 * M_PI / 180.0); // [rad^2], 2 deg std
+constexpr double kDefaultGpsYawVar = (2.0 * kPi / 180.0) * (2.0 * kPi / 180.0); // [rad^2], 2 deg std
 constexpr double kDefaultGpsSpeedVar = 0.01;    // [(m/s)^2], 0.1 m/s std
 
 } // namespace

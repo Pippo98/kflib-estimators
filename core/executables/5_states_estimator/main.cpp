@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <numbers>
 #include <random>
 #include <utility>
 
@@ -26,7 +27,7 @@ int main() {
   R(FiveStateEstimator::MEAS_X, FiveStateEstimator::MEAS_X) = 0.25;
   R(FiveStateEstimator::MEAS_Y, FiveStateEstimator::MEAS_Y) = 0.25;
   R(FiveStateEstimator::MEAS_YAW, FiveStateEstimator::MEAS_YAW) =
-      (1.0 * M_PI / 180.0) * (1.0 * M_PI / 180.0);
+      (1.0 * std::numbers::pi / 180.0) * (1.0 * std::numbers::pi / 180.0);
   R(FiveStateEstimator::MEAS_VG, FiveStateEstimator::MEAS_VG) = 0.04;
   estimator.setMeasurementNoise(R);
 
