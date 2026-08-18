@@ -1,0 +1,4 @@
+[submodule "external/kflib"]
+	path = external/kflib
+	url = https://github.com/Pippo98/kflib
+	branch = v2
