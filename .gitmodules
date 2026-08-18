@@ -2,3 +2,6 @@
 	path = external/kflib
 	url = https://github.com/Pippo98/kflib
 	branch = v2
+[submodule "external/nanobind"]
+	path = external/nanobind
+	url = https://github.com/wjakob/nanobind

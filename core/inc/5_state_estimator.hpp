@@ -2,6 +2,8 @@
 
 #include <kflib/ekf.hpp>
 
+#include <vector>
+
 /**
  * @brief Extended Kalman Filter estimating a vehicle's planar pose and
  * body-frame velocities from IMU (prediction) and pose+speed (correction)
@@ -33,7 +35,14 @@ public:
   using Filter = ExtendedKalmanFilter<NUM_STATES>;
   using StateVector = Filter::StateVector;
   using StateCovariance = Filter::StateCovariance;
+  using StateVectorList = Filter::StateVectorList;
+  using StateCovarianceList = Filter::StateCovarianceList;
 
+  /**
+   * @brief Construct with default state/process/measurement covariances
+   * (see the .cpp for the assumed sensor characteristics) so the filter can
+   * run before the caller supplies characterized values.
+   */
   FiveStateEstimator();
 
   /** @brief Set the state vector [x, y, yaw, u, v]. */
@@ -62,6 +71,24 @@ public:
    * @param vg Measured velocity magnitude, hypot(u, v).
    */
   void correct(double x, double y, double yaw, double vg);
+
+  /**
+   * @brief Rauch-Tung-Striebel smoother: given a chronological sequence of
+   * filtered states and covariances (e.g. recorded across successive
+   * predict()+correct() calls) and the input used at each predict() call
+   * (see makeInput()), smooths them in place using future information.
+   * @param states In/out state estimates, one per timestep.
+   * @param covariances In/out state covariances, one per timestep.
+   * @param inputs Input vector used to predict from timestep i to i+1;
+   *   must have `states.size() - 1` entries.
+   */
+  void smooth(StateVectorList &states, StateCovarianceList &covariances,
+              const std::vector<Eigen::VectorXd> &inputs);
+
+  /** @brief Build an EKF input vector [ax, ay, yawRate, dt], as consumed by
+   * predict() and by the `inputs` list passed to smooth(). */
+  static Eigen::VectorXd makeInput(double ax, double ay, double yawRate,
+                                    double dt);
 
   const StateVector &getState() const { return filter_.getState(); }
   const StateCovariance &getCovariance() const { return filter_.getCovariance(); }

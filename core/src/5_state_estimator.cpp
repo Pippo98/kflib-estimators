@@ -2,6 +2,30 @@
 
 #include <cmath>
 
+namespace {
+
+// Ballpark defaults so the filter can run before the caller supplies
+// characterized covariances, roughly matching consumer-grade automotive
+// IMU + GPS sensor specs. Callers with actual sensor specs should override
+// these via setStateCovariance()/setProcessNoise()/setMeasurementNoise().
+
+// Initial state uncertainty.
+constexpr double kDefaultPositionVar = 10.0;   // [m^2]
+constexpr double kDefaultYawVar = (10.0 * M_PI / 180.0) * (10.0 * M_PI / 180.0); // [rad^2], 10 deg std
+constexpr double kDefaultVelocityVar = 1.0;    // [(m/s)^2]
+
+// Process noise, added once per predict() call (not scaled by dt).
+constexpr double kDefaultPositionProcessVar = 1e-4;
+constexpr double kDefaultYawProcessVar = 1e-5;
+constexpr double kDefaultVelocityProcessVar = 1e-3;
+
+// Measurement noise: consumer-grade GPS position/heading/speed.
+constexpr double kDefaultGpsPositionVar = 2.25; // [m^2], 1.5 m std
+constexpr double kDefaultGpsYawVar = (2.0 * M_PI / 180.0) * (2.0 * M_PI / 180.0); // [rad^2], 2 deg std
+constexpr double kDefaultGpsSpeedVar = 0.01;    // [(m/s)^2], 0.1 m/s std
+
+} // namespace
+
 FiveStateEstimator::FiveStateEstimator() {
   filter_.setStateUpdateFunction(&FiveStateEstimator::stateFunction);
   filter_.setStateJacobian(&FiveStateEstimator::stateJacobian);
@@ -9,10 +33,29 @@ FiveStateEstimator::FiveStateEstimator() {
   filter_.setMeasurementJacobian(&FiveStateEstimator::measurementJacobian);
 
   filter_.setState(StateVector::Zero());
-  filter_.setStateCovariance(StateCovariance::Identity());
-  filter_.setProcessCovariance(StateCovariance::Identity());
-  filter_.setMeasurementCovariance(
-      Eigen::MatrixXd::Identity(NUM_MEASUREMENTS, NUM_MEASUREMENTS));
+
+  StateCovariance P0 = StateCovariance::Zero();
+  P0(STATE_X, STATE_X) = kDefaultPositionVar;
+  P0(STATE_Y, STATE_Y) = kDefaultPositionVar;
+  P0(STATE_YAW, STATE_YAW) = kDefaultYawVar;
+  P0(STATE_U, STATE_U) = kDefaultVelocityVar;
+  P0(STATE_V, STATE_V) = kDefaultVelocityVar;
+  filter_.setStateCovariance(P0);
+
+  StateCovariance Q0 = StateCovariance::Zero();
+  Q0(STATE_X, STATE_X) = kDefaultPositionProcessVar;
+  Q0(STATE_Y, STATE_Y) = kDefaultPositionProcessVar;
+  Q0(STATE_YAW, STATE_YAW) = kDefaultYawProcessVar;
+  Q0(STATE_U, STATE_U) = kDefaultVelocityProcessVar;
+  Q0(STATE_V, STATE_V) = kDefaultVelocityProcessVar;
+  filter_.setProcessCovariance(Q0);
+
+  Eigen::Matrix4d R0 = Eigen::Matrix4d::Zero();
+  R0(MEAS_X, MEAS_X) = kDefaultGpsPositionVar;
+  R0(MEAS_Y, MEAS_Y) = kDefaultGpsPositionVar;
+  R0(MEAS_YAW, MEAS_YAW) = kDefaultGpsYawVar;
+  R0(MEAS_VG, MEAS_VG) = kDefaultGpsSpeedVar;
+  filter_.setMeasurementCovariance(R0);
 }
 
 void FiveStateEstimator::setState(double x, double y, double yaw, double u,
@@ -40,12 +83,7 @@ void FiveStateEstimator::setMeasurementNoise(const Eigen::Matrix4d &R) {
 
 void FiveStateEstimator::predict(double ax, double ay, double yawRate,
                                   double dt) {
-  Eigen::VectorXd input(NUM_INPUTS);
-  input(INPUT_AX) = ax;
-  input(INPUT_AY) = ay;
-  input(INPUT_YAW_RATE) = yawRate;
-  input(INPUT_DT) = dt;
-  filter_.predict(input);
+  filter_.predict(makeInput(ax, ay, yawRate, dt));
 }
 
 void FiveStateEstimator::correct(double x, double y, double yaw, double vg) {
@@ -55,6 +93,22 @@ void FiveStateEstimator::correct(double x, double y, double yaw, double vg) {
   measurement(MEAS_YAW) = yaw;
   measurement(MEAS_VG) = vg;
   filter_.update(measurement);
+}
+
+void FiveStateEstimator::smooth(StateVectorList &states,
+                                 StateCovarianceList &covariances,
+                                 const std::vector<Eigen::VectorXd> &inputs) {
+  filter_.RTSSmoother(states, covariances, inputs);
+}
+
+Eigen::VectorXd FiveStateEstimator::makeInput(double ax, double ay,
+                                               double yawRate, double dt) {
+  Eigen::VectorXd input(NUM_INPUTS);
+  input(INPUT_AX) = ax;
+  input(INPUT_AY) = ay;
+  input(INPUT_YAW_RATE) = yawRate;
+  input(INPUT_DT) = dt;
+  return input;
 }
 
 Eigen::VectorXd FiveStateEstimator::stateFunction(const Eigen::VectorXd &state,

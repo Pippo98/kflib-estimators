@@ -21,3 +21,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PDIR}/lib/core)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PDIR}/bin/core)
 add_subdirectory(core)
 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PDIR}/lib/python)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PDIR}/lib/python)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PDIR}/bin/python)
+add_subdirectory(python)
+
