@@ -21,7 +21,7 @@ install.components = ["kflib_estimators"]
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-*"
-skip = "*-musllinux* pp*"
+skip = "*-musllinux*"
 build-frontend = "build[uv]"
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = "python -c \"import kflib_estimators; e = kflib_estimators.FiveStateEstimator(); e.predict(0.1, 0.0, 0.0, 0.01); print(e.get_state())\""
