@@ -90,18 +90,33 @@ void FiveStateEstimator::predict(double ax, double ay, double yawRate,
 }
 
 void FiveStateEstimator::correct(double x, double y, double yaw, double vg) {
-  Eigen::VectorXd measurement(NUM_MEASUREMENTS);
-  measurement(MEAS_X) = x;
-  measurement(MEAS_Y) = y;
-  measurement(MEAS_YAW) = yaw;
-  measurement(MEAS_VG) = vg;
-  filter_.update(measurement);
+  filter_.update(makeMeasurement(x, y, yaw, vg));
 }
 
 void FiveStateEstimator::smooth(StateVectorList &states,
                                  StateCovarianceList &covariances,
                                  const std::vector<Eigen::VectorXd> &inputs) {
   filter_.RTSSmoother(states, covariances, inputs);
+}
+
+std::pair<FiveStateEstimator::StateVectorList,
+          FiveStateEstimator::StateCovarianceList>
+FiveStateEstimator::estimate(const std::vector<Eigen::VectorXd> &measurements,
+                              const std::vector<Eigen::VectorXd> &inputs) {
+  StateVectorList states;
+  StateCovarianceList covariances;
+  states.reserve(measurements.size());
+  covariances.reserve(measurements.size());
+
+  for (size_t i = 0; i < measurements.size(); ++i) {
+    if (i > 0) {
+      filter_.predict(inputs[i - 1]);
+    }
+    filter_.update(measurements[i]);
+    states.push_back(filter_.getState());
+    covariances.push_back(filter_.getCovariance());
+  }
+  return {states, covariances};
 }
 
 Eigen::VectorXd FiveStateEstimator::makeInput(double ax, double ay,
@@ -112,6 +127,16 @@ Eigen::VectorXd FiveStateEstimator::makeInput(double ax, double ay,
   input(INPUT_YAW_RATE) = yawRate;
   input(INPUT_DT) = dt;
   return input;
+}
+
+Eigen::VectorXd FiveStateEstimator::makeMeasurement(double x, double y,
+                                                     double yaw, double vg) {
+  Eigen::VectorXd measurement(NUM_MEASUREMENTS);
+  measurement(MEAS_X) = x;
+  measurement(MEAS_Y) = y;
+  measurement(MEAS_YAW) = yaw;
+  measurement(MEAS_VG) = vg;
+  return measurement;
 }
 
 Eigen::VectorXd FiveStateEstimator::stateFunction(const Eigen::VectorXd &state,

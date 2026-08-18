@@ -2,6 +2,7 @@
 
 #include <kflib/ekf.hpp>
 
+#include <utility>
 #include <vector>
 
 /**
@@ -85,10 +86,35 @@ public:
   void smooth(StateVectorList &states, StateCovarianceList &covariances,
               const std::vector<Eigen::VectorXd> &inputs);
 
+  /**
+   * @brief Run the filter over a whole recorded sequence: correct() with
+   * measurements[0] first (no predict before it), then alternate
+   * predict(inputs[i]) / correct(measurements[i + 1]) for the rest.
+   * Overwrites the estimator's current state/covariance as it goes (set
+   * them beforehand via setState()/setStateCovariance() to seed the prior
+   * used for measurements[0]).
+   * @param measurements Measurement vectors [x, y, yaw, vg] (see
+   *   makeMeasurement()), chronologically ordered.
+   * @param inputs Input vectors [ax, ay, yawRate, dt] (see makeInput())
+   *   used to predict from measurements[i] to measurements[i + 1]; must
+   *   have `measurements.size() - 1` entries.
+   * @return One filtered state/covariance per measurement, in the same
+   *   layout smooth() expects for its `states`/`covariances` arguments
+   *   (with these same `inputs`), so the two chain directly.
+   */
+  std::pair<StateVectorList, StateCovarianceList>
+  estimate(const std::vector<Eigen::VectorXd> &measurements,
+           const std::vector<Eigen::VectorXd> &inputs);
+
   /** @brief Build an EKF input vector [ax, ay, yawRate, dt], as consumed by
-   * predict() and by the `inputs` list passed to smooth(). */
+   * predict() and by the `inputs` list passed to smooth()/estimate(). */
   static Eigen::VectorXd makeInput(double ax, double ay, double yawRate,
                                     double dt);
+
+  /** @brief Build a measurement vector [x, y, yaw, vg], as consumed by
+   * correct() and by the `measurements` list passed to estimate(). */
+  static Eigen::VectorXd makeMeasurement(double x, double y, double yaw,
+                                          double vg);
 
   const StateVector &getState() const { return filter_.getState(); }
   const StateCovariance &getCovariance() const { return filter_.getCovariance(); }

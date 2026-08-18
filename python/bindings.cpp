@@ -1,5 +1,6 @@
 #include <nanobind/eigen/dense.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
@@ -37,7 +38,21 @@ NB_MODULE(kflib_estimators, m) {
       .def_static("make_input", &FiveStateEstimator::makeInput, "ax"_a,
                    "ay"_a, "yaw_rate"_a, "dt"_a,
                    "Build an EKF input vector [ax, ay, yaw_rate, dt], for "
-                   "use with the `inputs` argument of smooth().")
+                   "use with the `inputs` argument of estimate()/smooth().")
+      .def_static("make_measurement", &FiveStateEstimator::makeMeasurement,
+                   "x"_a, "y"_a, "yaw"_a, "vg"_a,
+                   "Build a measurement vector [x, y, yaw, vg], for use "
+                   "with the `measurements` argument of estimate().")
+      .def("estimate", &FiveStateEstimator::estimate, "measurements"_a,
+           "inputs"_a,
+           "Run the filter over a whole recorded sequence: correct() with "
+           "measurements[0] first (no predict before it), then alternate "
+           "predict(inputs[i]) / correct(measurements[i + 1]) for the "
+           "rest. Overwrites the estimator's current state/covariance as "
+           "it goes. `inputs` must have `len(measurements) - 1` entries. "
+           "Returns (states, covariances), one entry per measurement, in "
+           "the layout smooth() expects (with these same `inputs`), so "
+           "the two chain directly.")
       .def(
           "smooth",
           [](FiveStateEstimator &self,
