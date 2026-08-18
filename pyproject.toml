@@ -1,0 +1,27 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "cmake>=3.20", "ninja"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "kflib-estimators"
+version = "0.1.0"
+description = "Python bindings (nanobind) for the kflib-estimators FiveStateEstimator: a 5-state (x, y, yaw, u, v) vehicle EKF."
+requires-python = ">=3.10"
+dependencies = ["numpy"]
+
+[tool.scikit-build]
+# Only build the Python extension (and the `core`/`kflib` targets it
+# depends on) — skip the unrelated C++ demo executable.
+build.targets = ["kflib_estimators"]
+cmake.build-type = "Release"
+# Only install the component carrying the extension module itself; without
+# this, `cmake --install` also sweeps in Eigen's (and other third-party
+# subdirectories') own install() rules, bloating the wheel with headers.
+install.components = ["kflib_estimators"]
+
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-*"
+skip = "*-musllinux* pp*"
+build-frontend = "build[uv]"
+manylinux-x86_64-image = "manylinux_2_28"
+test-command = "python -c \"import kflib_estimators; e = kflib_estimators.FiveStateEstimator(); e.predict(0.1, 0.0, 0.0, 0.01); print(e.get_state())\""

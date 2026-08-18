@@ -25,3 +25,10 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/nanobind
 
 nanobind_add_module(kflib_estimators bindings.cpp)
 target_link_libraries(kflib_estimators PRIVATE core)
+
+# Installed as a standalone top-level module (no wrapping Python package),
+# so it lands directly in site-packages as `import kflib_estimators`. Tagged
+# with its own COMPONENT so `cmake --install --component kflib_estimators`
+# (as scikit-build-core is configured to do) packages only this target,
+# not the install() rules pulled in from Eigen/kflib/nanobind.
+install(TARGETS kflib_estimators LIBRARY DESTINATION . COMPONENT kflib_estimators)
