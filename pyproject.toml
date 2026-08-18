@@ -25,3 +25,11 @@ skip = "*-musllinux*"
 build-frontend = "build[uv]"
 manylinux-x86_64-image = "manylinux_2_28"
 test-command = "python -c \"import kflib_estimators; e = kflib_estimators.FiveStateEstimator(); e.predict(0.1, 0.0, 0.0, 0.01); print(e.get_state())\""
+
+[tool.cibuildwheel.macos]
+# nanobind's sources use C++17 aligned new/delete, which needs macOS >=
+# 10.13; the default deployment target for the x86_64 build (cross-compiled
+# from the arm64 runner) is 10.9, which fails to compile. arm64 itself
+# requires >= 11.0 (no earlier macOS ran on Apple Silicon), so use a single
+# target that satisfies both cross-compiled wheels.
+environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }
