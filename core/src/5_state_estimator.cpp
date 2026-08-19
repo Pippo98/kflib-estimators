@@ -112,7 +112,7 @@ FiveStateEstimator::estimate(const std::vector<Eigen::VectorXd> &measurements,
     if (i > 0) {
       filter_.predict(inputs[i - 1]);
     }
-    if (measurements.size() == FiveStateEstimator::NUM_MEASUREMENTS) {
+    if (measurements[i].size() == FiveStateEstimator::NUM_MEASUREMENTS) {
       filter_.update(measurements[i]);
     }
     states.push_back(filter_.getState());
