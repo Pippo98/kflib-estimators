@@ -26,9 +26,28 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/external/nanobind
 nanobind_add_module(kflib_estimators bindings.cpp)
 target_link_libraries(kflib_estimators PRIVATE core)
 
+# Generate a .pyi stub (+ py.typed marker) from the freshly built module.
+# Without this, the module is an opaque compiled binary with no static type
+# information, so editors/LSPs (Pyright, Pylance, Jedi, ...) can't show
+# argument names, types, or docstrings for it.
+nanobind_add_stub(
+  kflib_estimators_stub
+  MODULE kflib_estimators
+  OUTPUT kflib_estimators.pyi
+  PYTHON_PATH $<TARGET_FILE_DIR:kflib_estimators>
+  DEPENDS kflib_estimators
+  MARKER_FILE py.typed
+)
+
 # Installed as a standalone top-level module (no wrapping Python package),
 # so it lands directly in site-packages as `import kflib_estimators`. Tagged
 # with its own COMPONENT so `cmake --install --component kflib_estimators`
 # (as scikit-build-core is configured to do) packages only this target,
 # not the install() rules pulled in from Eigen/kflib/nanobind.
 install(TARGETS kflib_estimators LIBRARY DESTINATION . COMPONENT kflib_estimators)
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/kflib_estimators.pyi
+  ${CMAKE_CURRENT_BINARY_DIR}/py.typed
+  DESTINATION .
+  COMPONENT kflib_estimators
+)

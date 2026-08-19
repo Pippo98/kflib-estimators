@@ -11,8 +11,8 @@ dependencies = ["numpy"]
 
 [tool.scikit-build]
 # Only build the Python extension (and the `core`/`kflib` targets it
-# depends on) — skip the unrelated C++ demo executable.
-build.targets = ["kflib_estimators"]
+# depends on) and its .pyi stub — skip the unrelated C++ demo executable.
+build.targets = ["kflib_estimators", "kflib_estimators_stub"]
 cmake.build-type = "Release"
 # Only install the component carrying the extension module itself; without
 # this, `cmake --install` also sweeps in Eigen's (and other third-party
