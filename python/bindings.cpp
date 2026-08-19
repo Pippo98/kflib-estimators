@@ -4,6 +4,8 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
+#include <stdexcept>
+
 #include "5_state_estimator.hpp"
 
 namespace nb = nanobind;
@@ -53,6 +55,62 @@ NB_MODULE(kflib_estimators, m) {
            "Returns (states, covariances), one entry per measurement, in "
            "the layout smooth() expects (with these same `inputs`), so "
            "the two chain directly.")
+      .def(
+          "estimate_from_series",
+          [](FiveStateEstimator &self, const Eigen::VectorXd &time,
+             const Eigen::VectorXd &ax, const Eigen::VectorXd &ay,
+             const Eigen::VectorXd &yawRate, const Eigen::VectorXd &x,
+             const Eigen::VectorXd &y, const Eigen::VectorXd &yaw,
+             const Eigen::VectorXd &vg, double measurementDt) {
+            const Eigen::Index n = time.size();
+            if (n == 0 || ax.size() != n || ay.size() != n ||
+                yawRate.size() != n || x.size() != n || y.size() != n ||
+                yaw.size() != n || vg.size() != n) {
+              throw std::invalid_argument(
+                  "time, ax, ay, yaw_rate, x, y, yaw, vg must all be "
+                  "non-empty and the same length");
+            }
+
+            // One input per step from sample i to i+1: dt from consecutive
+            // timestamps, IMU reading held from the start of the step.
+            std::vector<Eigen::VectorXd> inputs;
+            inputs.reserve(static_cast<size_t>(n - 1));
+            for (Eigen::Index i = 0; i + 1 < n; ++i) {
+              inputs.push_back(FiveStateEstimator::makeInput(
+                  ax(i), ay(i), yawRate(i), time(i + 1) - time(i)));
+            }
+
+            // Correct only close to every `measurement_dt`, always
+            // including the first sample; every other sample gets an
+            // empty (skipped) measurement slot, per estimate()'s contract.
+            std::vector<Eigen::VectorXd> measurements;
+            measurements.reserve(static_cast<size_t>(n));
+            double lastCorrectionTime = time(0);
+            for (Eigen::Index i = 0; i < n; ++i) {
+              if (i == 0 || time(i) - lastCorrectionTime >= measurementDt) {
+                measurements.push_back(
+                    FiveStateEstimator::makeMeasurement(x(i), y(i), yaw(i), vg(i)));
+                lastCorrectionTime = time(i);
+              } else {
+                measurements.emplace_back();
+              }
+            }
+
+            return self.estimate(measurements, inputs);
+          },
+          "time"_a, "ax"_a, "ay"_a, "yaw_rate"_a, "x"_a, "y"_a, "yaw"_a,
+          "vg"_a, "measurement_dt"_a,
+          "Convenience wrapper around estimate() for time-series data "
+          "(e.g. columns from a pandas DataFrame): pass absolute "
+          "timestamps `time` plus one column vector per IMU/measurement "
+          "field (all the same length as `time`), and a `measurement_dt` "
+          "giving the desired spacing between correction steps. Every "
+          "sample is used for prediction; only the first sample and "
+          "samples at least `measurement_dt` after the last correction "
+          "are used to correct() (the rest are skipped, per estimate()'s "
+          "empty-measurement contract). Builds the `inputs`/`measurements` "
+          "arguments to estimate() internally and calls it, so the return "
+          "value is the same (states, covariances) pair.")
       .def(
           "smooth",
           [](FiveStateEstimator &self,

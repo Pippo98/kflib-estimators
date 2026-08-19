@@ -89,12 +89,18 @@ public:
   /**
    * @brief Run the filter over a whole recorded sequence: correct() with
    * measurements[0] first (no predict before it), then alternate
-   * predict(inputs[i]) / correct(measurements[i + 1]) for the rest.
-   * Overwrites the estimator's current state/covariance as it goes (set
-   * them beforehand via setState()/setStateCovariance() to seed the prior
-   * used for measurements[0]).
+   * predict(inputs[i]) / correct(measurements[i + 1]) for the rest. An
+   * entry of `measurements` that isn't a NUM_MEASUREMENTS-sized vector
+   * (e.g. a default-constructed empty Eigen::VectorXd) is treated as "no
+   * measurement at this timestep": that step still contributes its
+   * predict(), but the correct() is skipped, and the current (prediction-
+   * only) state/covariance is still recorded for that entry. Overwrites
+   * the estimator's current state/covariance as it goes (set them
+   * beforehand via setState()/setStateCovariance() to seed the prior used
+   * for measurements[0]).
    * @param measurements Measurement vectors [x, y, yaw, vg] (see
-   *   makeMeasurement()), chronologically ordered.
+   *   makeMeasurement()), chronologically ordered; entries not of size
+   *   NUM_MEASUREMENTS are skipped (see above).
    * @param inputs Input vectors [ax, ay, yawRate, dt] (see makeInput())
    *   used to predict from measurements[i] to measurements[i + 1]; must
    *   have `measurements.size() - 1` entries.
