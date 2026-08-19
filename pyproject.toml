@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "Python bindings (nanobind) for the kflib-estimators FiveStateEstimator: a 5-state (x, y, yaw, u, v) vehicle EKF."
 requires-python = ">=3.10"
 dependencies = ["numpy"]
+license = "MIT"
+license-files = ["LICENSE"]
 
 [tool.scikit-build]
 # Only build the Python extension (and the `core`/`kflib` targets it
