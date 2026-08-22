@@ -1,6 +1,7 @@
 
 add_library(
   core
+  src/4_state_estimator.cpp
   src/5_state_estimator.cpp
 )
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
